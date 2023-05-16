@@ -9,6 +9,7 @@ use App\Models\LineItem;
 use App\Models\Customer;
 use App\Models\Quote;
 use Carbon\Carbon;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class QuoteController extends Controller
 {
@@ -109,6 +110,16 @@ class QuoteController extends Controller
         }
 
         return redirect('sales/quotes');
+    }
+
+    public function downloadPdf(){
+
+        $quote = Quote::with('customer')->where('id', 1)->first();
+        $lineItems = $quote->lineItems;
+
+        $pdf = Pdf::loadView('pdf', ['quote' => $quote->toArray(), 'lineItems' => $lineItems, 'subTotal' => $quote->getSubtotal(), 'amount' => $quote->getAmount(),  ]);
+        return $pdf->download();
+
     }
 
     /**

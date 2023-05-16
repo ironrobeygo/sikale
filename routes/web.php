@@ -48,10 +48,18 @@ Route::middleware('auth')->group(function () {
     Route::get('/ajax/customers', [AjaxController::class, 'index']);
 
     Route::get('/test', function(){
-        $quote = Quote::find(1);
-        return view('pdf', compact('quote'));
+        $quote = Quote::with('customer')->where('id', 1)->first();
+        $lineItems = $quote->lineItems;
+        $subTotal = $quote->getSubtotal();
+        $amount = $quote->getAmount();
+
+        return view('pdf', compact('quote', 'lineItems', 'subTotal', 'amount'));
     });
 
+    
+    Route::get('/download-pdf', [QuoteController::class, 'downloadPdf']);
+
 });
+
 
 require __DIR__.'/auth.php';
