@@ -5,7 +5,7 @@
             <div class="flex">
                 <!-- Logo -->
                 <div class="shrink-0 flex items-center">
-                    <a href="{{ route('dashboard') }}">
+                    <a href="{{ route('dashboard') }}" style="width: 175px;">
                         <x-application-logo class="block h-9 w-auto fill-current text-gray-800 dark:text-gray-200" />
                     </a>
                 </div>
@@ -33,10 +33,6 @@
                         <x-slot name="content">
                             <x-dropdown-link :href="route('sales.quotes.index')">
                                 {{ __('Quotes') }}
-                            </x-dropdown-link>
-
-                            <x-dropdown-link :href="route('profile.edit')">
-                                {{ __('Invoices') }}
                             </x-dropdown-link>
 
                             <x-dropdown-link :href="route('sales.customers.index')">

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Sales\CustomerController;
 use App\Http\Controllers\Ajax\CustomerController as AjaxController;
@@ -18,9 +19,8 @@ use App\Models\Quote;
 |
 */
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::get('/', [AuthenticatedSessionController::class, 'create'])
+->name('login');
 
 Route::get('/dashboard', function () {
     return view('dashboard');
