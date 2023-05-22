@@ -6,6 +6,7 @@
 
     <script>
          $(document).ready(function () {
+            const formatter = new Intl.NumberFormat('en');
             $.ajaxSetup({
                 headers: {
                     'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
@@ -50,59 +51,132 @@
                 }
             });
 
-            $('.line-items').change(function(){
+            $('#items').on('click', '.trash', function(){
+                let index = $(this).parent().parent().data('index');
+                
+                let trLines = $(this).parent().parent().parent().children('tr').length - 1
+
+                $('#items tbody tr:eq('+index+')').remove();
+
+                findTotal(trLines)
+                findDiscount(trLines)
+                findVat(trLines)
+                findSubtotal(trLines)
+            })
+
+            $('#items').on('change', '.line-items', function(){
                 let index = $(this).parent().parent().data('index');
                 let priceName = '.'+index+'_price';
                 let quantityName = '.'+index+'_quantity';
+                let disc = '.'+index+'_disc';
                 let discountName = '.'+index+'_discount';
                 let vatName = '.'+index+'_vat';
                 let amountName = '.'+index+'_amount';
-                let trLines = $(this).parent().parent().parent().children('tr').length - 1
                 
                 let price = $(priceName).val() ?? 0;
                 let quantity = $(quantityName).val() ?? 0;
                 let discount = $(discountName).val() ?? 0;
 
-                
-                let amount = quantity * price;
+                let amount = quantity * Number(price.replace(/\,/g,''));
+
+                $(disc).val(0)
 
                 if(discount > 0 ){
                     let discountValue = (amount * (discount/100))
+                    $(disc).val(discountValue)
                     amount = amount - discountValue
                 } 
 
                 let vat = (amount * 16)/116;
 
-                $(amountName).val(amount);
-                $(vatName).val(vat.toFixed(2));
+                $(amountName).val(formatter.format(amount.toFixed(2)));
+                $(vatName).val(formatter.format(vat.toFixed(2)));
 
-                findSubtotal(trLines)
-                findTotal(trLines)
-
-            });
+                findTotal()
+                findDiscount()
+                findVat()
+                findSubtotal()
+            })
 
             $('.js-data-example-ajax').on('select2:select', function (e) {
                 $('#customer_id').val(e.params.data.id)
             });
 
-            function findSubtotal(lines){
-                let subTotal = parseFloat(0)
-                for(let i = 0; i <= lines; i++){
-                    let val = $('.'+i+'_vat').val()
-                    subTotal = subTotal + Number(val)
-                }
+            $('#addRow').click(function(e){
+                e.preventDefault();
+                let counts = $('#items tbody tr').length;
 
-                $('.subtotal_value').text(subTotal)
-            }
+                let html = '<tr data-index="'+counts+'">';
+                        html += '<td class="whitespace-no-wrap border-b border-gray-200 text-center">';
+                            html += counts + 1;
+                        html += '</td>';
+                        html += '<td class="whitespace-no-wrap border-b border-gray-200">';
+                            html += '<input type="text" name="line_items['+counts+'][description]" requied class="w-full border-none line-items">';
+                        html += '</td>';
+                        html += '<td class="whitespace-no-wrap border-b border-gray-200">';
+                            html += '<input type="num" min="0" name="line_items['+counts+'][quantity]" requied class="w-full p-1 focus:border-none line-items '+counts+'_quantity">';
+                        html += '</td>';
+                        html += '<td class="whitespace-no-wrap border-b border-gray-200">';
+                            html += '<input type="num" min="0" name="line_items['+counts+'][price]" requied class="w-full line-items '+counts+'_price">';
+                        html += '</td>';
+                        html += '<td class="whitespace-no-wrap border-b border-gray-200">';
+                            html += '<input type="hidden" name="line_items['+counts+'][disc]" class="'+counts+'_disc">';
+                            html += '<input type="num" min="0" name="line_items['+counts+'][discount]" requied class="w-full line-items '+counts+'_discount">';
+                        html += '</td>';
+                        html += '<td class="whitespace-no-wrap border-b border-gray-200">';
+                            html += '<input type="num" min="0" name="line_items['+counts+'][vat]" requied class="w-full '+counts+'_vat" readonly>';
+                        html += '</td>';
+                        html += '<td class="whitespace-no-wrap border-b border-gray-200">';
+                            html += '<input type="num" min="0" name="line_items['+counts+'][amount]" requied class="w-full '+counts+'_amount" readonly>';
+                        html += '</td>';
+                        html += '<td class="whitespace-no-wrap border-b border-gray-200">';
+                            html += '<span class="trash cursor-pointer" data-index="'+counts+'">Trash</span>';
+                        html += '</td>';
+                    html += '</tr>';
+                
+                $('#items tbody').append(html);
+            })
 
-            function findTotal(lines){
+            function findTotal(){
                 let total = parseFloat(0)
+                let lines = $('#items tbody tr').length - 1
+
                 for(let i = 0; i <= lines; i++){
                     let val = $('.'+i+'_amount').val()
-                    total = total + Number(val)
+                    total = total + Number(val.replace(/\,/g,''))
                 }
 
-                $('.total_value').text(total)
+                totalValue = total
+                $('.total_value').text(formatter.format(total.toFixed(2)))
+            }
+
+            function findVat(){
+                let vat = parseFloat(0)
+                let lines = $('#items tbody tr').length - 1
+
+                for(let i = 0; i <= lines; i++){
+                    let val = $('.'+i+'_vat').val()
+                    vat = vat + Number(val.replace(/\,/g,''))
+                }
+                vatValue = vat
+                $('.vat_value').text(formatter.format(vat.toFixed(2)))
+            }
+
+            function findDiscount(){
+                let disc = parseFloat(0)
+                let lines = $('#items tbody tr').length - 1
+                
+                for(let i = 0; i <= lines; i++){
+                    let val = $('.'+i+'_disc').val()
+                    disc = disc + Number(val.replace(/\,/g,''))
+                }
+                discValue = disc
+                $('.discount_value').text(formatter.format(disc.toFixed(2)))
+            }
+
+            function findSubtotal(){
+                subtotalValue = Number(totalValue) - Number(vatValue)
+                $('.subtotal_value').text(formatter.format(subtotalValue.toFixed(2)))
             }
 
          });
@@ -132,7 +206,7 @@
                     <form method="post" action="/sales/quotes/{{ $quote->id }}" class="space-y-6">
                         @method('PUT')
                         @csrf
-                        <input type="hidden" name="customer_id" id="customer_id">
+                        <input type="hidden" name="customer_id" id="customer_id" value="{{ $quote->customer_id }}">
                         <div class="border-b-2 border-slate-400 mb-6">
                             <h3 class="font-semibold">Billing</h3>
                             <p class="mb-6">Billing details appear in your invoice. Invoice Date is used in the dashboard and reports. Select the date you expect to get paid as the Due Date.</p>
@@ -181,16 +255,17 @@
                         </div>
 
                         <div>
-                            <table class="table-auto w-full">
+                            <table id="items" class="table-auto w-full">
                                 <thead>
                                     <tr>
-                                        <th class="px-6 py-3 text-xs font-medium leading-4 tracking-wider text-left text-gray-500 uppercase border-b border-gray-200 bg-gray-50">Item #</th>
-                                        <th class="px-6 py-3 text-xs font-medium leading-4 tracking-wider text-left text-gray-500 uppercase border-b border-gray-200 bg-gray-50">Description</th>
-                                        <th class="px-6 py-3 text-xs font-medium leading-4 tracking-wider text-left text-gray-500 uppercase border-b border-gray-200 bg-gray-50">Quantity</th>
-                                        <th class="px-6 py-3 text-xs font-medium leading-4 tracking-wider text-left text-gray-500 uppercase border-b border-gray-200 bg-gray-50">Price</th>
-                                        <th class="px-6 py-3 text-xs font-medium leading-4 tracking-wider text-left text-gray-500 uppercase border-b border-gray-200 bg-gray-50">Discount</th>
-                                        <th class="px-6 py-3 text-xs font-medium leading-4 tracking-wider text-left text-gray-500 uppercase border-b border-gray-200 bg-gray-50">VAT</th>
-                                        <th class="px-6 py-3 text-xs font-medium leading-4 tracking-wider text-left text-gray-500 uppercase border-b border-gray-200 bg-gray-50">Amount</th>
+                                        <th class="py-3 text-xs font-medium leading-4 tracking-wider text-center text-gray-500 uppercase border-b border-gray-200 bg-gray-50">#</th>
+                                        <th class="py-3 text-xs font-medium leading-4 tracking-wider text-left text-gray-500 uppercase border-b border-gray-200 bg-gray-50">Description</th>
+                                        <th class="w-[5%] py-3 text-xs font-medium leading-4 tracking-wider text-left text-gray-500 uppercase border-b border-gray-200 bg-gray-50">Qty</th>
+                                        <th class="w-[10%] py-3 text-xs font-medium leading-4 tracking-wider text-left text-gray-500 uppercase border-b border-gray-200 bg-gray-50">Price</th>
+                                        <th class="w-[10%] py-3 text-xs font-medium leading-4 tracking-wider text-left text-gray-500 uppercase border-b border-gray-200 bg-gray-50">Disc</th>
+                                        <th class="w-[10%] py-3 text-xs font-medium leading-4 tracking-wider text-left text-gray-500 uppercase border-b border-gray-200 bg-gray-50">VAT</th>
+                                        <th class="w-[10%] py-3 text-xs font-medium leading-4 tracking-wider text-left text-gray-500 uppercase border-b border-gray-200 bg-gray-50">Amount</th>
+                                        <th class="w-[5%] py-3 text-xs font-medium leading-4 tracking-wider text-left text-gray-500 uppercase border-b border-gray-200 bg-gray-50"></th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -211,6 +286,7 @@
                                             <input type="num" min="0" name="line_items[{{ $count }}][price]" requied class="w-full line-items {{ $count }}_price" value="{{ $lineItem->price }}">
                                         </td>
                                         <td class="whitespace-no-wrap border-b border-gray-200">
+                                            <input type="hidden" name="line_items[{{ $count }}][disc]" requied class="{{ $count }}_disc" value="{{ $lineItem->disc ?? 0 }}">
                                             <input type="num" min="0" name="line_items[{{ $count }}][discount]" requied class="w-full line-items {{ $count }}_discount" value="{{ $lineItem->discount ?? 0 }}">
                                         </td>
                                         <td class="whitespace-no-wrap border-b border-gray-200">
@@ -219,19 +295,45 @@
                                         <td class="whitespace-no-wrap border-b border-gray-200">
                                             <input type="num" min="0" name="line_items[{{ $count }}][amount]" requied class="w-full {{ $count }}_amount" readonly value="{{ $lineItem->amount }}">
                                         </td>
+                                        <td class="whitespace-no-wrap border-b border-gray-200">
+                                            @if($count > 0)
+                                            <span class="trash cursor-pointer" data-index="{{ $count }}">Trash</span>
+                                            @endif
+                                        </td>
                                     </tr>
+                                    @php  $count++ @endphp
                                     @endforeach
                                 </tbody>
                             </table>
+                            <x-secondary-button id="addRow" class="mt-5">{{ __('Add Row') }}</x-primary-button>
                         </div>
 
-                        <div class="grid grid-cols-3 gap-4">
-                            <div>&nbsp;</div>
-                            <div>&nbsp;</div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="text-xs">
+                                <ul>
+                                    <li>* This quote is valid for 7 days.  Acceptable minimum down payment is 50% of the quotation value.</li>
+                                    <li>*Please carefully check the order quantity, size, color, code and design before signing as any errors that may arise will be the client's responsibility.</li>
+                                    <li>*Sign on the quote confirming that the order is correct. The order will then be passed on to the factory for processing.</li>
+                                    <li>*Any goods not collected after order is complete will attract a storage fee of 5% of the total invoice amount per month.</li>
+                                    <li>*Goods can only be collected or delivered after the outstanding balance is fully settled.</li>
+                                </ul>
+                            </div>
                             <table>
                                 <tr>
-                                    <td class="border-b border-slate-400">Subtotal</td>
-                                    <td class="border-b border-slate-400 text-right">ZMK <span class="subtotal_value">{{ $quote->getSubTotal() }}</span></td>
+                                    <td class="py-3 border-b border-slate-400">Subtotal (excluding VAT)</td>
+                                    <td class="py-3 border-b border-slate-400 text-right">ZMK <span class="subtotal_value">{{ $quote->getSubTotal() }}</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="py-3 border-b border-slate-400">Discount</td>
+                                    <td class="py-3 border-b border-slate-400 text-right">ZMK <span class="discount_value">{{ $quote->getDiscValue() }}</span></td>
+                                </tr>                                
+                                <tr>
+                                    <td class="py-3 border-b border-slate-400">Delivery</td>
+                                    <td class="py-3 border-b border-slate-400 text-right">ZMK <input type="text" name="delivery_value" value="{{ number_format($quote->delivery) }}"/></td>
+                                </tr>
+                                <tr>
+                                    <td class="py-3 border-b border-slate-400">VAT 16%</td>
+                                    <td class="py-3 border-b border-slate-400 text-right">ZMK <span class="vat_value">{{ $quote->getVAT() }}</span></td>
                                 </tr>
                                 <tr>
                                     <td>Total</td>

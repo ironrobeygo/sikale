@@ -17,6 +17,7 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->unsignedInteger('quantity');
             $table->decimal('price', $precision = 8, $scale = 2);
+            $table->decimal('disc', $precision = 8, $scale = 2);
             $table->unsignedInteger('discount')->nullable();
             $table->decimal('vat', $precision = 8, $scale = 2);
             $table->decimal('amount', $precision = 8, $scale = 2);

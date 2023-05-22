@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use App\Models\LineItem;
 use App\Models\Customer;
 use App\Models\Quote;
+use App\Models\LineItems;
 use Carbon\Carbon;
 use Barryvdh\DomPDF\Facade\Pdf;
 
@@ -57,6 +58,7 @@ class QuoteController extends Controller
             $lineItem->description  = $line_item['description'];
             $lineItem->quantity     = $line_item['quantity'];
             $lineItem->price        = $line_item['price'];
+            $lineItem->disc         = $line_item['disc'];
             $lineItem->discount     = $line_item['discount'];
             $lineItem->vat          = $line_item['vat'];
             $lineItem->amount       = $line_item['amount'];
@@ -97,17 +99,35 @@ class QuoteController extends Controller
 
         $quote->save();
 
+        $request_ids = $ids= array_column(request()->line_items, 'id');
+
+        $existing = $quote->lineItems->map(function($value){
+            return $value['id'];
+        })->toArray();
+
+        $difference = array_diff($existing, $request_ids);
+
         foreach(request()->line_items as $line_item){
-            $lineItem = LineItem::find($line_item['id']);
+
+            if(!isset($line_item['id'])){
+                $lineItem = new LineItem;
+            } else {
+                $lineItem = LineItem::find($line_item['id']);
+            }
+
             $lineItem->quote_id     = $quote->id;
             $lineItem->description  = $line_item['description'];
             $lineItem->quantity     = $line_item['quantity'];
             $lineItem->price        = $line_item['price'];
+            $lineItem->disc         = $line_item['disc'];
             $lineItem->discount     = $line_item['discount'];
             $lineItem->vat          = $line_item['vat'];
             $lineItem->amount       = $line_item['amount'];
             $lineItem->save();
+
         }
+
+        if( count($difference) > 0 ) LineItem::destroy($difference);
 
         return redirect('sales/quotes');
     }
@@ -116,9 +136,25 @@ class QuoteController extends Controller
 
         $quote = Quote::with('customer')->where('id', 1)->first();
         $lineItems = $quote->lineItems;
+        $issue_date = Carbon::createFromFormat('Y-m-d', $quote['issue_date'])->format('m/d/Y');
+        $expiry_date = Carbon::createFromFormat('Y-m-d', $quote['expiry_date'])->format('m/d/Y');
+        $subTotal = $quote->getSubTotal();
+        $delivery = $quote->delivery;
+        $vat = $quote->getVAT();
+        $amount = $quote->getAmount();
 
-        $pdf = Pdf::loadView('pdf', ['quote' => $quote->toArray(), 'lineItems' => $lineItems, 'subTotal' => $quote->getSubtotal(), 'amount' => $quote->getAmount(),  ]);
-        return $pdf->download();
+        $pdf = Pdf::loadView('pdf', [
+            'quote' => $quote->toArray(),
+            'lineItems' => $lineItems,
+            'issue_date' => $issue_date,
+            'expiry_date' => $expiry_date,
+            'subTotal' => $subTotal,
+            'delivery' => $delivery,
+            'vat' => $vat,
+            'amount' => $amount,
+            'user' => auth()->user()->name
+        ]);
+        return $pdf->stream();
 
     }
 

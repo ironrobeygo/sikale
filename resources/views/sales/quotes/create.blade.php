@@ -6,6 +6,11 @@
 
     <script>
          $(document).ready(function () {
+            const formatter = new Intl.NumberFormat('en');
+            let totalValue = 0
+            let subtotalValue = 0
+            let vatValue = 0
+
             $.ajaxSetup({
                 headers: {
                     'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
@@ -49,59 +54,139 @@
                 }
             });
 
-            $('.line-items').change(function(){
+            $('#items').on('click', '.trash', function(){
+                let index = $(this).parent().parent().data('index');
+                
+                let trLines = $(this).parent().parent().parent().children('tr').length - 1
+
+                $('#items tbody tr:eq('+index+')').remove();
+
+                findTotal(trLines)
+                findDiscount(trLines)
+                findVat(trLines)
+                findSubtotal(trLines)
+            })
+
+            $('#items').on('change', '.line-items', function(){
                 let index = $(this).parent().parent().data('index');
                 let priceName = '.'+index+'_price';
                 let quantityName = '.'+index+'_quantity';
+                let disc = '.'+index+'_disc';
                 let discountName = '.'+index+'_discount';
                 let vatName = '.'+index+'_vat';
                 let amountName = '.'+index+'_amount';
-                let trLines = $(this).parent().parent().parent().children('tr').length - 1
                 
                 let price = $(priceName).val() ?? 0;
                 let quantity = $(quantityName).val() ?? 0;
                 let discount = $(discountName).val() ?? 0;
 
-                
-                let amount = quantity * price;
+                let amount = quantity * Number(price.replace(/\,/g,''));
+
+                $(disc).val(0)
 
                 if(discount > 0 ){
                     let discountValue = (amount * (discount/100))
+                    $(disc).val(discountValue)
                     amount = amount - discountValue
                 } 
 
                 let vat = (amount * 16)/116;
 
-                $(amountName).val(amount);
-                $(vatName).val(vat.toFixed(2));
+                $(amountName).val(formatter.format(amount.toFixed(2)));
+                $(vatName).val(formatter.format(vat.toFixed(2)));
 
-                findSubtotal(trLines)
-                findTotal(trLines)
-
-            });
+                findTotal()
+                findDiscount()
+                findVat()
+                findSubtotal()
+            })
 
             $('.js-data-example-ajax').on('select2:select', function (e) {
                 $('#customer_id').val(e.params.data.id)
             });
 
-            function findSubtotal(lines){
-                let subTotal = parseFloat(0)
-                for(let i = 0; i <= lines; i++){
-                    let val = $('.'+i+'_vat').val()
-                    subTotal = subTotal + Number(val)
-                }
+            $('#addRow').click(function(e){
+                e.preventDefault();
+                let counts = $('#items tbody tr').length;
 
-                $('.subtotal_value').text(subTotal)
-            }
+                let html = '<tr data-index="'+counts+'">';
+                        html += '<td class="whitespace-no-wrap border-b border-gray-200 text-center">';
+                            html += counts + 1;
+                        html += '</td>';
+                        html += '<td class="whitespace-no-wrap border-b border-gray-200">';
+                            html += '<input type="text" name="line_items['+counts+'][description]" requied class="w-full border-none line-items">';
+                        html += '</td>';
+                        html += '<td class="whitespace-no-wrap border-b border-gray-200">';
+                            html += '<input type="num" min="0" name="line_items['+counts+'][quantity]" requied class="w-full p-1 focus:border-none line-items '+counts+'_quantity">';
+                        html += '</td>';
+                        html += '<td class="whitespace-no-wrap border-b border-gray-200">';
+                            html += '<input type="num" min="0" name="line_items['+counts+'][price]" requied class="w-full line-items '+counts+'_price">';
+                        html += '</td>';
+                        html += '<td class="whitespace-no-wrap border-b border-gray-200">';
+                            html += '<input type="hidden" name="line_items['+counts+'][disc]" class="'+counts+'_disc">';
+                            html += '<input type="num" min="0" name="line_items['+counts+'][discount]" requied class="w-full line-items '+counts+'_discount">';
+                        html += '</td>';
+                        html += '<td class="whitespace-no-wrap border-b border-gray-200">';
+                            html += '<input type="num" min="0" name="line_items['+counts+'][vat]" requied class="w-full '+counts+'_vat" readonly>';
+                        html += '</td>';
+                        html += '<td class="whitespace-no-wrap border-b border-gray-200">';
+                            html += '<input type="num" min="0" name="line_items['+counts+'][amount]" requied class="w-full '+counts+'_amount" readonly>';
+                        html += '</td>';
+                        html += '<td class="whitespace-no-wrap border-b border-gray-200">';
+                            html += '<span class="trash cursor-pointer" data-index="'+counts+'">Trash</span>';
+                        html += '</td>';
+                    html += '</tr>';
+                
+                $('#items tbody').append(html);
+            })
 
-            function findTotal(lines){
+            $('#delivery_value').change(function(){
+                findTotal()
+            })
+
+            function findTotal(){
                 let total = parseFloat(0)
+                let lines = $('#items tbody tr').length - 1
+                let delivery = $('#delivery_value').val()
+
                 for(let i = 0; i <= lines; i++){
                     let val = $('.'+i+'_amount').val()
-                    total = total + Number(val)
+                    total = total + Number(val.replace(/\,/g,''))
                 }
 
-                $('.total_value').text(total)
+                total = total + delivery_value
+
+                totalValue = total
+                $('.total_value').text(formatter.format(total.toFixed(2)))
+            }
+
+            function findVat(){
+                let vat = parseFloat(0)
+                let lines = $('#items tbody tr').length - 1
+
+                for(let i = 0; i <= lines; i++){
+                    let val = $('.'+i+'_vat').val()
+                    vat = vat + Number(val.replace(/\,/g,''))
+                }
+                vatValue = vat
+                $('.vat_value').text(formatter.format(vat.toFixed(2)))
+            }
+
+            function findDiscount(){
+                let disc = parseFloat(0)
+                let lines = $('#items tbody tr').length - 1
+                
+                for(let i = 0; i <= lines; i++){
+                    let val = $('.'+i+'_disc').val()
+                    disc = disc + Number(val.replace(/\,/g,''))
+                }
+                discValue = disc
+                $('.discount_value').text(formatter.format(disc.toFixed(2)))
+            }
+
+            function findSubtotal(){
+                subtotalValue = Number(totalValue) - Number(vatValue)
+                $('.subtotal_value').text(formatter.format(subtotalValue.toFixed(2)))
             }
 
          });
@@ -139,7 +224,7 @@
                         <div class="flex gap-6">
                             <div class="w-1/3">
                                 <x-input-label for="customer" :value="__('Customer')" />
-                                <select class="js-data-example-ajax" style="width: 100%; margin-top: 4px;">
+                                <select class="js-data-example-ajax" style="width: 100%; margin-top: 4px;" required>
                                     <option></option>
                                     @foreach($customers as $customer)
                                     <option value="{{ $customer->id }}">{{ $customer->name }}</option>
@@ -150,13 +235,13 @@
                             <div class="w-1/3 space-y-6">
                                 <div>
                                     <x-input-label for="issue_date" :value="__('Issue Date')" />
-                                    <x-text-input id="issue_date" name="issue_date" type="text" class="mt-1 block w-full" required autofocus autocomplete="issue_date" />
+                                    <x-text-input id="issue_date" name="issue_date" type="text" class="mt-1 block w-full" required autofocus />
                                     <x-input-error class="mt-2" :messages="$errors->get('issue_date')" />
                                 </div>
 
                                 <div>
                                     <x-input-label for="expiry_date" :value="__('Expiry Date')" />
-                                    <x-text-input id="expiry_date" name="expiry_date" type="text" class="mt-1 block w-full" required autofocus autocomplete="expiry_date" />
+                                    <x-text-input id="expiry_date" name="expiry_date" type="text" class="mt-1 block w-full" required autofocus />
                                     <x-input-error class="mt-2" :messages="$errors->get('expiry_date')" />
                                 </div>
                             </div>
@@ -164,7 +249,7 @@
                             <div class="w-1/3 space-y-6">
                                 <div>
                                     <x-input-label for="quote" :value="__('Quote Number')" />
-                                    <x-text-input id="quote" name="quote" type="text" class="mt-1 block w-full" placeholder="QSF-XXX" required autofocus readonly />
+                                    <x-text-input id="quote" name="quote" type="text" class="mt-1 block w-full" placeholder="QSF-XXX" readonly />
                                     <x-input-error class="mt-2" :messages="$errors->get('quote')" />
                                 </div>
 
@@ -184,16 +269,17 @@
                         </div>
 
                         <div>
-                            <table class="table-auto w-full">
+                            <table id="items" class="table-auto w-full">
                                 <thead>
                                     <tr>
-                                        <th class="px-6 py-3 text-xs font-medium leading-4 tracking-wider text-left text-gray-500 uppercase border-b border-gray-200 bg-gray-50">Item #</th>
-                                        <th class="px-6 py-3 text-xs font-medium leading-4 tracking-wider text-left text-gray-500 uppercase border-b border-gray-200 bg-gray-50">Description</th>
-                                        <th class="px-6 py-3 text-xs font-medium leading-4 tracking-wider text-left text-gray-500 uppercase border-b border-gray-200 bg-gray-50">Quantity</th>
-                                        <th class="px-6 py-3 text-xs font-medium leading-4 tracking-wider text-left text-gray-500 uppercase border-b border-gray-200 bg-gray-50">Price</th>
-                                        <th class="px-6 py-3 text-xs font-medium leading-4 tracking-wider text-left text-gray-500 uppercase border-b border-gray-200 bg-gray-50">Discount</th>
-                                        <th class="px-6 py-3 text-xs font-medium leading-4 tracking-wider text-left text-gray-500 uppercase border-b border-gray-200 bg-gray-50">VAT</th>
-                                        <th class="px-6 py-3 text-xs font-medium leading-4 tracking-wider text-left text-gray-500 uppercase border-b border-gray-200 bg-gray-50">Amount</th>
+                                        <th class="py-3 text-xs font-medium leading-4 tracking-wider text-center text-gray-500 uppercase border-b border-gray-200 bg-gray-50">#</th>
+                                        <th class="py-3 text-xs font-medium leading-4 tracking-wider text-left text-gray-500 uppercase border-b border-gray-200 bg-gray-50">Description</th>
+                                        <th class="w-[5%] py-3 text-xs font-medium leading-4 tracking-wider text-left text-gray-500 uppercase border-b border-gray-200 bg-gray-50">Qty</th>
+                                        <th class="w-[10%] py-3 text-xs font-medium leading-4 tracking-wider text-left text-gray-500 uppercase border-b border-gray-200 bg-gray-50">Price</th>
+                                        <th class="w-[10%] py-3 text-xs font-medium leading-4 tracking-wider text-left text-gray-500 uppercase border-b border-gray-200 bg-gray-50">Disc</th>
+                                        <th class="w-[10%] py-3 text-xs font-medium leading-4 tracking-wider text-left text-gray-500 uppercase border-b border-gray-200 bg-gray-50">VAT</th>
+                                        <th class="w-[10%] py-3 text-xs font-medium leading-4 tracking-wider text-left text-gray-500 uppercase border-b border-gray-200 bg-gray-50">Amount</th>
+                                        <th class="w-[5%] py-3 text-xs font-medium leading-4 tracking-wider text-left text-gray-500 uppercase border-b border-gray-200 bg-gray-50"></th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -211,6 +297,7 @@
                                             <input type="num" min="0" name="line_items[0][price]" requied class="w-full line-items 0_price">
                                         </td>
                                         <td class="whitespace-no-wrap border-b border-gray-200">
+                                            <input type="hidden" name="line_items[0][disc]" class="0_disc">
                                             <input type="num" min="0" name="line_items[0][discount]" requied class="w-full line-items 0_discount">
                                         </td>
                                         <td class="whitespace-no-wrap border-b border-gray-200">
@@ -219,229 +306,43 @@
                                         <td class="whitespace-no-wrap border-b border-gray-200">
                                             <input type="num" min="0" name="line_items[0][amount]" requied class="w-full 0_amount" readonly>
                                         </td>
-                                    </tr>
-                                    <tr data-index="1">
-                                        <td class="whitespace-no-wrap border-b border-gray-200 text-center">
-                                            2
-                                        </td>
-                                        <td class="whitespace-no-wrap border-b border-gray-200">
-                                            <input type="text" name="line_items[1][description]" class="w-full border-none">
-                                        </td>
-                                        <td class="whitespace-no-wrap border-b border-gray-200">
-                                            <input type="num" min="0" name="line_items[1][quantity]" class="w-full p-1 focus:border-none line-items 1_quantity">
-                                        </td>
-                                        <td class="whitespace-no-wrap border-b border-gray-200">
-                                            <input type="num" min="0" name="line_items[1][price]" class="w-full line-items 1_price">
-                                        </td>
-                                        <td class="whitespace-no-wrap border-b border-gray-200">
-                                            <input type="num" min="0" name="line_items[1][discount]" class="w-full line-items 1_discount">
-                                        </td>
-                                        <td class="whitespace-no-wrap border-b border-gray-200">
-                                            <input type="num" min="0" name="line_items[1][vat]" class="w-full 1_vat" readonly>
-                                        </td>
-                                        <td class="whitespace-no-wrap border-b border-gray-200">
-                                            <input type="num" min="0" name="line_items[1][amount]" class="w-full 1_amount" readonly>
-                                        </td>
-                                    </tr>
-                                    <tr data-index="2">
-                                        <td class="whitespace-no-wrap border-b border-gray-200 text-center">
-                                            3
-                                        </td>
-                                        <td class="whitespace-no-wrap border-b border-gray-200">
-                                            <input type="text" name="line_items[2][description]" class="w-full border-none">
-                                        </td>
-                                        <td class="whitespace-no-wrap border-b border-gray-200">
-                                            <input type="num" min="0" name="line_items[2][quantity]" class="w-full p-1 focus:border-none line-items 2_quantity">
-                                        </td>
-                                        <td class="whitespace-no-wrap border-b border-gray-200">
-                                            <input type="num" min="0" name="line_items[2][price]" class="w-full line-items 2_price">
-                                        </td>
-                                        <td class="whitespace-no-wrap border-b border-gray-200">
-                                            <input type="num" min="0" name="line_items[2][discount]" class="w-full line-items 2_discount">
-                                        </td>
-                                        <td class="whitespace-no-wrap border-b border-gray-200">
-                                            <input type="num" min="0" name="line_items[2][vat]" class="w-full 2_vat" readonly>
-                                        </td>
-                                        <td class="whitespace-no-wrap border-b border-gray-200">
-                                            <input type="num" min="0" name="line_items[2][amount]" class="w-full 2_amount" readonly>
-                                        </td>
-                                    </tr>
-                                    <tr data-index="3">
-                                        <td class="whitespace-no-wrap border-b border-gray-200 text-center">
-                                            4
-                                        </td>
-                                        <td class="whitespace-no-wrap border-b border-gray-200">
-                                            <input type="text" name="line_items[3][description]" class="w-full border-none">
-                                        </td>
-                                        <td class="whitespace-no-wrap border-b border-gray-200">
-                                            <input type="num" min="0" name="line_items[3][quantity]" class="w-full p-1 focus:border-none line-items 3_quantity">
-                                        </td>
-                                        <td class="whitespace-no-wrap border-b border-gray-200">
-                                            <input type="num" min="0" name="line_items[3][price]" class="w-full line-items 3_price">
-                                        </td>
-                                        <td class="whitespace-no-wrap border-b border-gray-200">
-                                            <input type="num" min="0" name="line_items[3][discount]" class="w-full line-items 3_discount">
-                                        </td>
-                                        <td class="whitespace-no-wrap border-b border-gray-200">
-                                            <input type="num" min="0" name="line_items[3][vat]" class="w-full 3_vat" readonly>
-                                        </td>
-                                        <td class="whitespace-no-wrap border-b border-gray-200">
-                                            <input type="num" min="0" name="line_items[3][amount]" class="w-full 3_amount" readonly>
-                                        </td>
-                                    </tr>
-                                    <tr data-index="4">
-                                        <td class="whitespace-no-wrap border-b border-gray-200 text-center">
-                                            5
-                                        </td>
-                                        <td class="whitespace-no-wrap border-b border-gray-200">
-                                            <input type="text" name="line_items[4][description]" class="w-full border-none">
-                                        </td>
-                                        <td class="whitespace-no-wrap border-b border-gray-200">
-                                            <input type="num" min="0" name="line_items[4][quantity]" class="w-full p-1 focus:border-none line-items 4_quantity">
-                                        </td>
-                                        <td class="whitespace-no-wrap border-b border-gray-200">
-                                            <input type="num" min="0" name="line_items[4][price]" class="w-full line-items 4_price">
-                                        </td>
-                                        <td class="whitespace-no-wrap border-b border-gray-200">
-                                            <input type="num" min="0" name="line_items[4][discount]" class="w-full line-items 4_discount">
-                                        </td>
-                                        <td class="whitespace-no-wrap border-b border-gray-200">
-                                            <input type="num" min="0" name="line_items[4][vat]" class="w-full 4_vat" readonly>
-                                        </td>
-                                        <td class="whitespace-no-wrap border-b border-gray-200">
-                                            <input type="num" min="0" name="line_items[4][amount]" class="w-full 4_amount" readonly>
-                                        </td>
-                                    </tr>
-                                    <tr data-index="5">
-                                        <td class="whitespace-no-wrap border-b border-gray-200 text-center">
-                                            6
-                                        </td>
-                                        <td class="whitespace-no-wrap border-b border-gray-200">
-                                            <input type="text" name="line_items[5][description]" class="w-full border-none">
-                                        </td>
-                                        <td class="whitespace-no-wrap border-b border-gray-200">
-                                            <input type="num" min="0" name="line_items[5][quantity]" class="w-full p-1 focus:border-none line-items 5_quantity">
-                                        </td>
-                                        <td class="whitespace-no-wrap border-b border-gray-200">
-                                            <input type="num" min="0" name="line_items[5][price]" class="w-full line-items 5_price">
-                                        </td>
-                                        <td class="whitespace-no-wrap border-b border-gray-200">
-                                            <input type="num" min="0" name="line_items[5][discount]" class="w-full line-items 5_discount">
-                                        </td>
-                                        <td class="whitespace-no-wrap border-b border-gray-200">
-                                            <input type="num" min="0" name="line_items[5][vat]" class="w-full 5_vat" readonly>
-                                        </td>
-                                        <td class="whitespace-no-wrap border-b border-gray-200">
-                                            <input type="num" min="0" name="line_items[5][amount]" class="w-full 5_amount" readonly>
-                                        </td>
-                                    </tr>
-                                    <tr data-index="6">
-                                        <td class="whitespace-no-wrap border-b border-gray-200 text-center">
-                                            7
-                                        </td>
-                                        <td class="whitespace-no-wrap border-b border-gray-200">
-                                            <input type="text" name="line_items[6][description]" class="w-full border-none">
-                                        </td>
-                                        <td class="whitespace-no-wrap border-b border-gray-200">
-                                            <input type="num" min="0" name="line_items[6][quantity]" class="w-full p-1 focus:outline-none line-items 6_quantity">
-                                        </td>
-                                        <td class="whitespace-no-wrap border-b border-gray-200">
-                                            <input type="num" min="0" name="line_items[6][price]" class="w-full line-items 6_price">
-                                        </td>
-                                        <td class="whitespace-no-wrap border-b border-gray-200">
-                                            <input type="num" min="0" name="line_items[6][discount]" class="w-full line-items 6_discount">
-                                        </td>
-                                        <td class="whitespace-no-wrap border-b border-gray-200">
-                                            <input type="num" min="0" name="line_items[6][vat]" class="w-full 6_vat" readonly>
-                                        </td>
-                                        <td class="whitespace-no-wrap border-b border-gray-200">
-                                            <input type="num" min="0" name="line_items[6][amount]" class="w-full 6_amount" readonly>
-                                        </td>
-                                    </tr>
-                                    <tr data-index="7">
-                                        <td class="whitespace-no-wrap border-b border-gray-200 text-center">
-                                            8
-                                        </td>
-                                        <td class="whitespace-no-wrap border-b border-gray-200">
-                                            <input type="text" name="line_items[7][description]" class="w-full border-none">
-                                        </td>
-                                        <td class="whitespace-no-wrap border-b border-gray-200">
-                                            <input type="num" min="0" name="line_items[7][quantity]" class="w-full p-1 focus:border-none line-items 7_quantity">
-                                        </td>
-                                        <td class="whitespace-no-wrap border-b border-gray-200">
-                                            <input type="num" min="0" name="line_items[7][price]" class="w-full line-items 7_price">
-                                        </td>
-                                        <td class="whitespace-no-wrap border-b border-gray-200">
-                                            <input type="num" min="0" name="line_items[7][discount]" class="w-full line-items 7_discount">
-                                        </td>
-                                        <td class="whitespace-no-wrap border-b border-gray-200">
-                                            <input type="num" min="0" name="line_items[7][vat]" class="w-full 7_vat" readonly>
-                                        </td>
-                                        <td class="whitespace-no-wrap border-b border-gray-200">
-                                            <input type="num" min="0" name="line_items[7][amount]" class="w-full 7_amount" readonly>
-                                        </td>
-                                    </tr>
-                                    <tr data-index="8">
-                                        <td class="whitespace-no-wrap border-b border-gray-200 text-center">
-                                            9
-                                        </td>
-                                        <td class="whitespace-no-wrap border-b border-gray-200">
-                                            <input type="text" name="line_items[8][description]" class="w-full border-none">
-                                        </td>
-                                        <td class="whitespace-no-wrap border-b border-gray-200">
-                                            <input type="num" min="0" name="line_items[8][quantity]" class="w-full p-1 focus:border-none line-items 8_quantity">
-                                        </td>
-                                        <td class="whitespace-no-wrap border-b border-gray-200">
-                                            <input type="num" min="0" name="line_items[8][price]" class="w-full line-items 8_price">
-                                        </td>
-                                        <td class="whitespace-no-wrap border-b border-gray-200">
-                                            <input type="num" min="0" name="line_items[8][discount]" class="w-full line-items 8_discount">
-                                        </td>
-                                        <td class="whitespace-no-wrap border-b border-gray-200">
-                                            <input type="num" min="0" name="line_items[8][vat]" class="w-full 8_vat" readonly>
-                                        </td>
-                                        <td class="whitespace-no-wrap border-b border-gray-200">
-                                            <input type="num" min="0" name="line_items[8][amount]" class="w-full 8_amount" readonly>
-                                        </td>
-                                    </tr>
-                                    <tr data-index="9">
-                                        <td class="whitespace-no-wrap border-b border-gray-200 text-center">
-                                            10
-                                        </td>
-                                        <td class="whitespace-no-wrap border-b border-gray-200">
-                                            <input type="text" name="line_items[9][description]" class="w-full border-none">
-                                        </td>
-                                        <td class="whitespace-no-wrap border-b border-gray-200">
-                                            <input type="num" min="0" name="line_items[9][quantity]" class="w-full p-1 focus:border-none line-items 9_quantity">
-                                        </td>
-                                        <td class="whitespace-no-wrap border-b border-gray-200">
-                                            <input type="num" min="0" name="line_items[9][price]" class="w-full line-items 9_price">
-                                        </td>
-                                        <td class="whitespace-no-wrap border-b border-gray-200">
-                                            <input type="num" min="0" name="line_items[9][discount]" class="w-full line-items 9_discount">
-                                        </td>
-                                        <td class="whitespace-no-wrap border-b border-gray-200">
-                                            <input type="num" min="0" name="line_items[9][vat]" class="w-full 9_vat" readonly>
-                                        </td>
-                                        <td class="whitespace-no-wrap border-b border-gray-200">
-                                            <input type="num" min="0" name="line_items[9][amount]" class="w-full 9_amount" readonly>
-                                        </td>
+                                        <td class="whitespace-no-wrap border-b border-gray-200">&nbsp;</td>
                                     </tr>
                                 </tbody>
                             </table>
+                            <x-secondary-button id="addRow" class="mt-5">{{ __('Add Row') }}</x-primary-button>
                         </div>
 
-                        <div class="grid grid-cols-3 gap-4">
-                            <div>&nbsp;</div>
-                            <div>&nbsp;</div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="text-xs">
+                                <ul>
+                                    <li>* This quote is valid for 7 days.  Acceptable minimum down payment is 50% of the quotation value.</li>
+                                    <li>*Please carefully check the order quantity, size, color, code and design before signing as any errors that may arise will be the client's responsibility.</li>
+                                    <li>*Sign on the quote confirming that the order is correct. The order will then be passed on to the factory for processing.</li>
+                                    <li>*Any goods not collected after order is complete will attract a storage fee of 5% of the total invoice amount per month.</li>
+                                    <li>*Goods can only be collected or delivered after the outstanding balance is fully settled.</li>
+                                </ul>
+                            </div>
                             <table>
                                 <tr>
-                                    <td class="border-b border-slate-400">Subtotal</td>
-                                    <td class="border-b border-slate-400 text-right">ZMK <span class="subtotal_value"></span></td>
+                                    <td class="py-3 border-b border-slate-400">Subtotal (excluding VAT)</td>
+                                    <td class="py-3 border-b border-slate-400 text-right">ZMK <span class="subtotal_value">0.00</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="py-3 border-b border-slate-400">Discount</td>
+                                    <td class="py-3 border-b border-slate-400 text-right">ZMK <span class="discount_value">0.00</span></td>
+                                </tr>                                
+                                <tr>
+                                    <td class="py-3 border-b border-slate-400">Delivery</td>
+                                    <td class="py-3 border-b border-slate-400 text-right">ZMK <input type="text" name="delivery_value" id="delivery_value" value="1500"/></td>
+                                </tr>
+                                <tr>
+                                    <td class="py-3 border-b border-slate-400">VAT 16%</td>
+                                    <td class="py-3 border-b border-slate-400 text-right">ZMK <span class="vat_value">0.00</span></td>
                                 </tr>
                                 <tr>
                                     <td>Total</td>
-                                    <td class="text-right font-bold text-2xl">ZMK <span class="total_value"></span></td>
+                                    <td class="text-right font-bold text-2xl">ZMK <span class="total_value">0.00</span></td>
                                 </tr>
                             </table>
                         </div>

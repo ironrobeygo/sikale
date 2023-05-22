@@ -23,6 +23,18 @@ class Quote extends Model
         return $this->lineItems->pluck('amount')->sum();
     }
 
+    public function scopeGetVAT(){
+        return $this->lineItems->pluck('vat')->sum();
+    }
+
+    public function scopeGetDiscValue(){
+        return $this->lineItems->pluck('disc')->sum();
+    }
+
+    public function scopeGetDiscount(){
+        return $this->lineItems->pluck('discount')->sum();
+    }
+
     public function scopeGetSubTotal(){
         $vat = $this->lineItems->pluck('vat')->sum();
         $total = $this->lineItems->pluck('amount')->sum();
