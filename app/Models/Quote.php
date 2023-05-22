@@ -20,7 +20,7 @@ class Quote extends Model
     }
 
     public function scopeGetAmount(){
-        return $this->lineItems->pluck('amount')->sum();
+        return $this->lineItems->pluck('amount')->sum() + $this->delivery;
     }
 
     public function scopeGetVAT(){

@@ -20,7 +20,7 @@
                         <thead>
                             <tr>
                                 <th class="px-6 py-3 text-xs font-medium leading-4 tracking-wider text-left text-gray-500 uppercase border-b border-gray-200 bg-gray-50">Customer</th>
-                                <th class="px-6 py-3 text-xs font-medium leading-4 tracking-wider text-left text-gray-500 uppercase border-b border-gray-200 bg-gray-50">Status</th>
+                                {{-- <th class="px-6 py-3 text-xs font-medium leading-4 tracking-wider text-left text-gray-500 uppercase border-b border-gray-200 bg-gray-50">Status</th> --}}
                                 <th class="px-6 py-3 text-xs font-medium leading-4 tracking-wider text-left text-gray-500 uppercase border-b border-gray-200 bg-gray-50">Due Date</th>
                                 <th class="px-6 py-3 text-xs font-medium leading-4 tracking-wider text-left text-gray-500 uppercase border-b border-gray-200 bg-gray-50">Amount</th>
                                 <th class="px-6 py-3 text-xs font-medium leading-4 tracking-wider text-left text-gray-500 uppercase border-b border-gray-200 bg-gray-50">Action</th>
@@ -32,32 +32,32 @@
                                 <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-200">
                                     {{ $quote->customer->name }}
                                 </td>
-                                <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-200">
+                                {{-- <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-200">
                                     {{ $quote->status }}
-                                </td>
+                                </td> --}}
                                 <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-200">
                                     {{ $quote->expiry_date }}
                                 </td>
                                 <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-200">
-                                    ZMK {{ number_format($quote->getAmount(), 2, '.','.') }}
+                                    ZMK {{ number_format($quote->getAmount(), 2, '.',',') }}
                                 </td>
                                 <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-200">
                                     <ul class="flex gap-4">
-                                        <li>
+                                        {{-- <li>
                                             <a href="{{ route('sales.quotes.show', ['quote' => $quote->id]) }}">Show</a>
-                                        </li>
+                                        </li> --}}
                                         <li>
                                             <a href="{{ route('sales.quotes.edit', ['quote' => $quote->id]) }}">Edit</a>
                                         </li>
                                         <li>
-                                            <a href="{{ route('sales.quotes.edit', ['quote' => $quote->id]) }}">Download</a>
+                                            <a href="{{ route('downloads.show', ['download' => $quote->id]) }}" target="_blank">Download</a>
                                         </li>
-                                        <li>
+                                        {{-- <li>
                                             <form action="{{ route('sales.quotes.destroy', ['quote' => $quote->id]) }}" method="post">
                                                 {{ method_field('delete') }}
                                                 <button class="btn btn-default" type="submit">Delete</button>
                                             </form>
-                                        </li>
+                                        </li> --}}
                                     </ul>
                                 </td>
                             </tr>

@@ -1,12 +1,13 @@
 <?php
 
-use App\Http\Controllers\Auth\AuthenticatedSessionController;
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\Sales\CustomerController;
-use App\Http\Controllers\Ajax\CustomerController as AjaxController;
-use App\Http\Controllers\Sales\QuoteController;
-use Illuminate\Support\Facades\Route;
 use App\Models\Quote;
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Sales\QuoteController;
+use App\Http\Controllers\Sales\CustomerController;
+use App\Http\Controllers\Sales\QuoteDownloadController;
+use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\Ajax\CustomerController as AjaxController;
 
 /*
 |--------------------------------------------------------------------------
@@ -38,6 +39,10 @@ Route::middleware('auth')->group(function () {
         });
     });
 
+    Route::prefix('quotes')->group(function(){
+        Route::resource('downloads', QuoteDownloadController::class)->only('show');
+    });
+
     Route::prefix('ajax')->group(function(){
         Route::name('ajax.')->group(function(){
             Route::resource('customers', AjaxController::class);
@@ -46,18 +51,6 @@ Route::middleware('auth')->group(function () {
 
 
     Route::get('/ajax/customers', [AjaxController::class, 'index']);
-
-    Route::get('/test', function(){
-        $quote = Quote::with('customer')->where('id', 1)->first();
-        $lineItems = $quote->lineItems;
-        $subTotal = $quote->getSubtotal();
-        $amount = $quote->getAmount();
-
-        return view('pdf', compact('quote', 'lineItems', 'subTotal', 'amount'));
-    });
-
-    
-    Route::get('/download-pdf', [QuoteController::class, 'downloadPdf']);
 
 });
 

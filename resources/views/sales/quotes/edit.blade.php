@@ -137,14 +137,21 @@
                 $('#items tbody').append(html);
             })
 
+            $('#delivery_value').change(function(){
+                findTotal()
+            })
+
             function findTotal(){
                 let total = parseFloat(0)
                 let lines = $('#items tbody tr').length - 1
+                let delivery_value = $('#delivery_value').val()
 
                 for(let i = 0; i <= lines; i++){
                     let val = $('.'+i+'_amount').val()
                     total = total + Number(val.replace(/\,/g,''))
                 }
+
+                total = parseInt(total) + parseInt(delivery_value)
 
                 totalValue = total
                 $('.total_value').text(formatter.format(total.toFixed(2)))
@@ -193,8 +200,12 @@
     <x-slot name="header">
         <div class="flex justify-between">
             <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
-                {{ __('New Quote') }}
+                {{ __('Edit Quote') }}
             </h2>
+            
+            <a href="{{ route('sales.quotes.index') }}" class="items-center px-4 py-2 bg-gray-800 dark:bg-gray-200 border border-transparent rounded-md font-semibold text-xs text-white dark:text-gray-800 uppercase tracking-widest hover:bg-gray-700 dark:hover:bg-white focus:bg-gray-700 dark:focus:bg-white active:bg-gray-900 dark:active:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition ease-in-out duration-150">
+                {{ __('Back to Quotes') }}
+            </a>
         </div>
     </x-slot>
 
@@ -321,23 +332,23 @@
                             <table>
                                 <tr>
                                     <td class="py-3 border-b border-slate-400">Subtotal (excluding VAT)</td>
-                                    <td class="py-3 border-b border-slate-400 text-right">ZMK <span class="subtotal_value">{{ $quote->getSubTotal() }}</span></td>
+                                    <td class="py-3 border-b border-slate-400 text-right">ZMK <span class="subtotal_value">{{ number_format($quote->getSubTotal(), 2, '.',',') }}</span></td>
                                 </tr>
                                 <tr>
                                     <td class="py-3 border-b border-slate-400">Discount</td>
-                                    <td class="py-3 border-b border-slate-400 text-right">ZMK <span class="discount_value">{{ $quote->getDiscValue() }}</span></td>
+                                    <td class="py-3 border-b border-slate-400 text-right">ZMK <span class="discount_value">{{ number_format($quote->getDiscValue(), 2, '.',',') }}</span></td>
                                 </tr>                                
                                 <tr>
                                     <td class="py-3 border-b border-slate-400">Delivery</td>
-                                    <td class="py-3 border-b border-slate-400 text-right">ZMK <input type="text" name="delivery_value" value="{{ number_format($quote->delivery) }}"/></td>
+                                    <td class="py-3 border-b border-slate-400 text-right">ZMK <input type="text" name="delivery_value" id="delivery_value" value="{{ number_format($quote->delivery) }}"/></td>
                                 </tr>
                                 <tr>
                                     <td class="py-3 border-b border-slate-400">VAT 16%</td>
-                                    <td class="py-3 border-b border-slate-400 text-right">ZMK <span class="vat_value">{{ $quote->getVAT() }}</span></td>
+                                    <td class="py-3 border-b border-slate-400 text-right">ZMK <span class="vat_value">{{ number_format($quote->getVAT(), 2, '.',',') }}</span></td>
                                 </tr>
                                 <tr>
                                     <td>Total</td>
-                                    <td class="text-right font-bold text-2xl">ZMK <span class="total_value">{{ $quote->getAmount() }}</span></td>
+                                    <td class="text-right font-bold text-2xl">ZMK <span class="total_value">{{ number_format($quote->getAmount(), 2, '.',',') }}</span></td>
                                 </tr>
                             </table>
                         </div>
